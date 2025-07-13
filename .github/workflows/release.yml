@@ -16,10 +16,14 @@ jobs:
 
       - name: Analyze commits
         run: |
-          COMMITS=$(git log --oneline --no-merges | grep -B 999 "tag:" | head -n -1)
-          echo "COMMITS=$COMMITS" >> $GITHUB_ENV
-          echo ${{ env.COMMITS }}
-          git log --oneline --no-merges
+          TAGGED_COMMIT_LINE=$(git log --oneline --no-merges --decorate | grep -n "tag:" | head -n 1 | cut -d: -f1 || echo 9999)
+
+          COMMITS=$(git log --oneline --no-merges --decorate | head -n $((TAGGED_COMMIT_LINE - 1)))
+
+          # Set the environment variable (handle multiline content properly)
+          echo "COMMITS<<EOF" >> $GITHUB_ENV
+          echo "$COMMITS" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
