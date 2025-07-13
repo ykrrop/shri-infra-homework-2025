@@ -16,6 +16,8 @@ jobs:
         run: |
           COMMITS=$(git log --oneline --no-merges | grep -B 999 "tag:" | head -n -1)
           echo "COMMITS=$COMMITS" >> $GITHUB_ENV
+          echo ${{ env.COMMITS }}
+          git log --oneline --no-merges
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
