@@ -11,9 +11,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    env:
-      IMAGE: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest
-
     steps:
       - name: Docker login to Yandex Cloud
         run: |
@@ -22,6 +19,7 @@ jobs:
 
       - name: Check if image exists
         run: |
+          IMAGE="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest"
           docker manifest inspect "$IMAGE" > /dev/null 2>&1 \
             || (echo "Image not found: $IMAGE" && exit 1)
 
@@ -33,43 +31,48 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             IMAGE="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest"
+
             echo "${{ secrets.YA_OAUTH }}" | sudo docker login --username oauth --password-stdin cr.yandex
+
+
             sudo docker pull "$IMAGE"
+
+
             sudo docker stop app_container || true
             sudo docker rm app_container   || true
+
             sudo docker run -d --name app_container "$IMAGE"
 
-      - name: Find release issue by title
-        id: locate_release_issue
+      - name: Comment on Release Issue
         uses: actions/github-script@v7
-        env:
-          VERSION: ${{ github.event.inputs.version }}
         with:
           script: |
-            const issuesList = await github.rest.issues.listForRepo({
+            // 1) получаем список открытых релиз-ишью
+            const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
-              per_page: 20,
+              per_page: 50
             });
-            const releaseTitle = `Release v${process.env.VERSION}`;
-            const found = issuesList.data.find(i => i.title === releaseTitle);
-            if (!found) throw new Error(`No open issue with title "${releaseTitle}"`);
-            core.setOutput("issue_number", found.number);
 
-      - name: Comment on GitHub Issue
-        uses: actions/github-script@v7
-        env:
-          VERSION: ${{ github.event.inputs.version }}
-        with:
-          script: |
-            const issueNumber = Number(core.getInput('issue_number'));
-            const today = new Date().toISOString().slice(0,10);
+            // 2) находим нужную по title = Release v<version>
+            const title = `Release v${github.event.inputs.version}`;
+            const issue = issues.data.find(i => i.title === title);
+            if (!issue) {
+              throw new Error(`Issue not found: "${title}"`);
+            }
 
+            // 3) формируем и отправляем комментарий
             const actor = context.actor;
+            const today = new Date().toISOString().slice(0,10);
+            const imageRef = `cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${github.event.inputs.version}_latest`;
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: issueNumber,
-              body: `Deploy @${actor} от ${today}.\nОбраз: \`${process.env.IMAGE}\``
+              issue_number: issue.number,
+              body: [
+                `Прод @${actor} от ${today}.`,
+                `Образ: \`${imageRef}\``
+              ].join("\n")
             });
