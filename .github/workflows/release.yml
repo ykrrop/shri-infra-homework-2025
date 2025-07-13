@@ -12,6 +12,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Analyze commits
+        run: |
+          COMMITS=$(git log --oneline --no-merges | grep -B 999 "tag:" | head -n -1)
+          echo "COMMITS=$COMMITS" >> $GITHUB_ENV
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -50,13 +55,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_NUMBER: ${{ github.run_number }}
           AUTHOR: ${{ github.actor }}
-          COMMITS: ${{ github.event.commits }}
           DOCKER_IMAGE: cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:${{ github.run_number }}
 
 
       - name: Update changelog
         run: |
-          echo "## ${github.run_number}\n ${github.event.commits}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+          echo "## ${github.run_number}\n ${env.COMMITS}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"

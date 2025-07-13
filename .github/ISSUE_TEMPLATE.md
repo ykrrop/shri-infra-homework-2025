@@ -5,5 +5,5 @@ labels: release
 Date: {{ date | date('D MMM YYYY') }}
 Author: {{ github.actor }}
 Version: {{ env.RELEASE_NUMBER }}
-Commits: {{ env.COMMITS }}
 Docker image: `{{ env.DOCKER_IMAGE }}`
+Commits: {{ env.COMMITS }}
