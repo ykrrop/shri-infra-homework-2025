@@ -46,7 +46,7 @@ jobs:
           CR_REPOSITORY: app
           IMAGE_TAG: ${{ github.run_number }}
         run: |
-          docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:latest .
+          docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:${IMAGE_TAG}_latest .
           docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY --all-tags
 
       - name: Create issue
@@ -60,7 +60,7 @@ jobs:
 
       - name: Update changelog
         run: |
-          echo "## ${github.run_number}\n ${env.COMMITS}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+          echo "## ${{ github.run_number }}\n ${{ env.COMMITS }}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
