@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: release/${{ github.event.inputs.base_version }}
+          ref: releases/${{ github.event.inputs.base_version }}
           fetch-depth: 0
 
       - name: Login to Yandex Container Registry
