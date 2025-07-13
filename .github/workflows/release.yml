@@ -45,9 +45,8 @@ jobs:
           CR_REPOSITORY: app
           IMAGE_TAG: ${{ github.run_number }}
         run: |
-          docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG .
-          docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG
-          docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:latest
+          docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:latest .
+          docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY --all-tags
 
       - name: Create tag
         uses: rickstaa/action-create-tag@v1
