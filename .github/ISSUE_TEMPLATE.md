@@ -6,4 +6,5 @@ Date: {{ date | date('D MMM YYYY') }}
 Author: {{ github.actor }}
 Version: {{ env.RELEASE_NUMBER }}
 Docker image: `{{ env.DOCKER_IMAGE }}`
-Commits: {{ env.COMMITS }}
+Commits:
+{{ env.COMMITS }}

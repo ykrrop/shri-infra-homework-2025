@@ -18,7 +18,7 @@ jobs:
         run: |
           TAGGED_COMMIT_LINE=$(git log --oneline --no-merges --decorate | grep -n "tag:" | head -n 1 | cut -d: -f1 || echo 9999)
 
-          COMMITS=$(git log --oneline --no-merges --decorate | head -n $((TAGGED_COMMIT_LINE - 1)))
+          COMMITS=$(git log --oneline --no-merges | head -n $((TAGGED_COMMIT_LINE - 1)))
 
           # Set the environment variable (handle multiline content properly)
           echo "COMMITS<<EOF" >> $GITHUB_ENV
@@ -68,7 +68,7 @@ jobs:
 
       - name: Update changelog
         run: |
-          printf "## ${{ github.run_number }}\n ${{ env.COMMITS }}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+          printf "## ${{ github.run_number }}\n%s\n" "${{ env.COMMITS }}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
