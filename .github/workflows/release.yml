@@ -32,10 +32,12 @@ jobs:
           branch: 'refs/heads/releases/${{ github.run_number }}'
 
       - name: Login to Yandex Cloud Container Registry
-        id: login-cr
-        uses: yc-actions/yc-cr-login@v3
-        with:
-          yc-sa-id: ${{ secrets.YC_SA_ID }}
+        run: |
+          echo ${{ secrets.yandex_oauth }} | docker login \
+            --username oauth \
+            --password-stdin \
+            cr.yandex
+
 
       - name: Build, tag, and push image to Yandex Cloud Container Registry
         env:
