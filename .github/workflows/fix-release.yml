@@ -1,0 +1,90 @@
+name: Hotfix Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_version:
+        description: "Which release to fix"
+        required: true
+
+env:
+  APP: app
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        step: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Run ${{ matrix.step }}
+        run: npm run ${{ matrix.step }}
+
+  do-hotfix:
+    needs: preflight
+    runs-on: ubuntu-latest
+    env:
+      VER: ${{ github.event.inputs.base_version }}
+      FIX_ID: ${{ github.run_number }}
+      REG_URL: cr.yandex/${{ secrets.YC_REGISTRY_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/${{ github.event.inputs.base_version }}
+          fetch-depth: 0
+
+      - name: Login to Yandex Container Registry
+        run: |
+          echo "${{ secrets.YA_OAUTH }}" \
+            | docker login --username oauth --password-stdin cr.yandex
+
+      - name: Build & Tag hotfix image
+        run: |
+          docker build -t $REG_URL/$APP:${VER}_fix${FIX_ID} .
+          docker tag    $REG_URL/$APP:${VER}_fix${FIX_ID} $REG_URL/$APP:${VER}_latest
+
+      - name: Push images
+        run: |
+          docker push $REG_URL/$APP:${VER}_fix${FIX_ID}
+          docker push $REG_URL/$APP:${VER}_latest
+
+      - name: Create git tag
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git tag ${VER}_fix${FIX_ID}
+          git push origin ${VER}_fix${FIX_ID}
+
+      - name: Comment on release issue
+        uses: actions/github-script@v7
+        env:
+          ISSUE_TITLE: Release v${{ github.event.inputs.base_version }}
+        with:
+          script: |
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            const target = issues.data.find(i => i.title === process.env.ISSUE_TITLE);
+            if (!target) {
+              console.log(`No open issue titled "${process.env.ISSUE_TITLE}"`);
+              return;
+            }
+            const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+            const comment = [
+              `**Hotfix applied**: ${now}`,
+              `Author: @${github.actor}`,
+              `Image: \`${process.env.REG_URL}/${process.env.APP}:${process.env.VER}_fix${process.env.FIX_ID}\``
+            ].join('\n\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: target.number,
+              body: comment
+            });

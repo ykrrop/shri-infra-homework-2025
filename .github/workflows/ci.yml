@@ -1,0 +1,25 @@
+name: Code Validation Pipeline
+
+on:
+  pull_request:
+
+jobs:
+  quality-and-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        task: [lint, test]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Use Node.js v22
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ${{ matrix.task }}
+        run: npm run ${{ matrix.task }}

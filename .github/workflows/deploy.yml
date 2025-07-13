@@ -1,0 +1,54 @@
+name: Production Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Tag or version to deploy"
+        required: true
+
+jobs:
+  deploy:
+    name: Push & Launch
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_REF: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.release_tag }}_latest
+
+    steps:
+      - name: Login to Yandex Container Registry
+        run: echo "${{ secrets.YA_OAUTH }}" | docker login --username oauth --password-stdin cr.yandex
+
+      - name: Verify image exists
+        run: |
+          if ! docker manifest inspect "$IMAGE_REF" >/dev/null 2>&1; then
+            echo "❌ $IMAGE_REF not found" >&2
+            exit 1
+          fi
+
+      - name: SSH & Deploy container
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            echo "${{ secrets.YA_OAUTH }}" | sudo docker login --username oauth --password-stdin cr.yandex
+            sudo docker pull $IMAGE_REF
+            sudo docker stop app_container || true
+            sudo docker rm app_container || true
+            sudo docker run -d --name app_container $IMAGE_REF
+
+      - name: Post back to GitHub
+        uses: actions/github-script@v7
+        env:
+          TAG: ${{ github.event.inputs.release_tag }}
+          IMAGE: ${{ env.IMAGE_REF }}
+        with:
+          script: |
+            const today = new Date().toISOString().slice(0,10);
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number(process.env.TAG.match(/(\d+)$/)[1] || 0),
+              body: `✅ Deployed by @${github.actor} on ${today}\nImage: \`${process.env.IMAGE}\``
+            });
