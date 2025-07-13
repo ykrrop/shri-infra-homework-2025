@@ -68,6 +68,8 @@ jobs:
       - name: Find issue
         id: find-issue
         run: echo "number=$(gh issue list --search "Release ${{ inputs.release_number }}" --json number --jq '.[0].number')" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Get current date
         id: date
