@@ -1,3 +1,6 @@
+## 20
+cff2ac5 here-document
+5d1205e Update changelog
 ## 19
 c6d52bd fix newlines
 624dc8f Update changelog
