@@ -25,7 +25,7 @@ jobs:
         run: npm run lint
 
       - name: Create branch
-        uses: peterjgrainger/action-create-branch@master
+        uses: peterjgrainger/action-create-branch@main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
