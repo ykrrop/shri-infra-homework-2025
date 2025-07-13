@@ -1,10 +1,11 @@
 name: Fix
 
-on: [workflow_dispatch]
-  inputs:
-    release_number:
-      description: "Release which is being fixed"
-      required: true
+on:
+  workflow_dispatch:
+    inputs:
+      release_number:
+        description: "Release which is being fixed"
+        required: true
 
 jobs:
   fix:
