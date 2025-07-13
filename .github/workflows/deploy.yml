@@ -1,78 +1,56 @@
-name: Deploy to Production
+name: Production Deployment
 
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Version to deploy"
+      release_tag:
+        description: "Tag or version to deploy"
         required: true
 
 jobs:
   deploy:
+    name: Push & Launch
     runs-on: ubuntu-latest
-
     steps:
-      - name: Docker login to Yandex Cloud
-        run: |
-          echo "${{ secrets.YA_OAUTH }}" \
-            | docker login --username oauth --password-stdin cr.yandex
+      - name: Login to Yandex Container Registry
+        run: echo "${{ secrets.YA_OAUTH }}" | docker login --username oauth --password-stdin cr.yandex
 
-      - name: Check if image exists
+      - name: Verify image exists
         run: |
-          IMAGE="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest"
-          docker manifest inspect "$IMAGE" > /dev/null 2>&1 \
-            || (echo "Image not found: $IMAGE" && exit 1)
+          IMAGE_REF="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.release_tag }}_latest"
+          if ! docker manifest inspect "$IMAGE_REF" >/dev/null 2>&1; then
+            echo "$IMAGE_REF not found" >&2
+            exit 1
+          fi
 
-      - name: Deploy via SSH
+      - name: SSH & Deploy container
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VM_IP }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            IMAGE="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest"
+            IMAGE_REF="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.release_tag }}_latest"
 
             echo "${{ secrets.YA_OAUTH }}" | sudo docker login --username oauth --password-stdin cr.yandex
-
-
-            sudo docker pull "$IMAGE"
-
-
+            sudo docker pull "$IMAGE_REF"
             sudo docker stop app_container || true
-            sudo docker rm app_container   || true
+            sudo docker rm app_container || true
+            sudo docker run -d -p 3000:3000 --name app_container "$IMAGE_REF"
 
-            sudo docker run -d --name app_container "$IMAGE"
-
-      - name: Comment on Release Issue
+      - name: Post back to GitHub
         uses: actions/github-script@v7
         with:
           script: |
-            // 1) получаем список открытых релиз-ишью
-            const issues = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              per_page: 50
-            });
-
-            // 2) находим нужную по title = Release v<version>
-            const title = `Release v${github.event.inputs.version}`;
-            const issue = issues.data.find(i => i.title === title);
-            if (!issue) {
-              throw new Error(`Issue not found: "${title}"`);
-            }
-
-            // 3) формируем и отправляем комментарий
-            const actor = context.actor;
             const today = new Date().toISOString().slice(0,10);
-            const imageRef = `cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${github.event.inputs.version}_latest`;
+            const tag = "${{ github.event.inputs.release_tag }}";
+            const image = "cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:" + tag + "_latest";
+            const issueNumber = Number(tag.match(/(\d+)$/)?.[1] || 0);
+            const vmIP = "${{ secrets.VM_IP }}";
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: issue.number,
-              body: [
-                `Прод @${actor} от ${today}.`,
-                `Образ: \`${imageRef}\``
-              ].join("\n")
+              issue_number: issueNumber,
+              body: `Deployed by @${github.actor} on ${today}\nImage: \`${image}\`\n\n🔗 [Open app](http://${vmIP}:3000)`
             });
