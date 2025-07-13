@@ -1,0 +1,55 @@
+name: Release
+
+on: [workflow_dispatch]
+
+runs-on: ubuntu-latest
+
+steps:
+  - name: Checkout code
+    uses: actions/checkout@v4
+
+  - name: Run lint & test
+    uses: ./.github/workflows/checks.yml
+
+  - name: Create branch
+    uses: peterjgrainger/action-create-branch@v2.2.0
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    with:
+      branch: 'refs/heads/releases/${{ github.run_number }}'
+
+  - name: Login to Yandex Cloud Container Registry
+    id: login-cr
+    uses: yc-actions/yc-cr-login@v3
+    with:
+      yc-sa-id: ${{ secrets.YC_SA_ID }}
+
+  - name: Build, tag, and push image to Yandex Cloud Container Registry
+    env:
+      CR_REGISTRY: crp6flpsq42sl65e0kb8
+      CR_REPOSITORY: app
+      IMAGE_TAG: ${{ github.run_number }}
+    run: |
+      docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG .
+      docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG
+      docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:latest
+
+  - name: Create tag
+    uses: rickstaa/action-create-tag@v1
+    with:
+      tag: ${{ github.run_number }}
+
+  - name: Create issue
+    uses: JasonEtco/create-an-issue@v2
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  - name: Update changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Update changelog
+        run: |
+          echo "## ${github.run_number}\n ${github.event.commits}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
