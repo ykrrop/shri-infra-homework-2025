@@ -21,7 +21,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          ref: release/${{ inputs.release_number }}
+          ref: releases/${{ inputs.release_number }}
           fetch-depth: 0
 
 
