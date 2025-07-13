@@ -5,6 +5,9 @@ on: [workflow_dispatch]
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      CR_REGISTRY: crp6flpsq42sl65e0kb8
+      CR_REPOSITORY: app
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -24,13 +27,6 @@ jobs:
       - name: Run lint
         run: npm run lint
 
-      - name: Create branch
-        uses: peterjgrainger/action-create-branch@v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          branch: 'refs/heads/releases/${{ github.run_number }}'
-
       - name: Login to Yandex Cloud Container Registry
         run: |
           echo ${{ secrets.yandex_oauth }} | docker login \
@@ -48,16 +44,36 @@ jobs:
           docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:latest .
           docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY --all-tags
 
-      - name: Create tag
-        uses: rickstaa/action-create-tag@v1
-        with:
-          tag: ${{ github.run_number }}
-
       - name: Create issue
         uses: JasonEtco/create-an-issue@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_NUMBER: ${{ github.run_number }}
+          AUTHOR: ${{ github.actor }}
+          COMMITS: ${{ github.event.commits }}
+          DOCKER_IMAGE: cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:${{ github.run_number }}
+
 
       - name: Update changelog
         run: |
           echo "## ${github.run_number}\n ${github.event.commits}" | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add CHANGELOG.md
+          git commit -m "Update changelog"
+          git push
+
+
+      - name: Create branch
+        uses: peterjgrainger/action-create-branch@v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          branch: 'refs/heads/releases/${{ github.run_number }}'
+
+      - name: Create tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: ${{ github.run_number }}

@@ -1,9 +1,9 @@
 ---
-title: Release {{ github.run_number }}
+title: Release {{ env.RELEASE_NUMBER }}
 labels: release
 ---
-Date: {{ date }}
+Date: {{ date | date('D MMM YYYY') }}
 Author: {{ github.actor }}
-Version: {{ github.run_number }}
-Commits: {{ github.event.commits }}
-Docker image: `cr.yandex/crp6flpsq42sl65e0kb8/app:{{ github.run_number }}`
+Version: {{ env.RELEASE_NUMBER }}
+Commits: {{ env.COMMITS }}
+Docker image: `{{ env.DOCKER_IMAGE }}`
