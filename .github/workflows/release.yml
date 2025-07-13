@@ -68,11 +68,11 @@ jobs:
 
       - name: Update changelog
         run: |
-          cat > temp << EOF
-          ## ${{ github.run_number }}
-          ${{ env.COMMITS }}
-          EOF
-          cat CHANGELOG.md >> temp && mv temp CHANGELOG.md
+          echo "## ${{ github.run_number }}" > temp
+          echo "${{ env.COMMITS }}" | sed 's/^/- /' >> temp
+
+          cat CHANGELOG.md >> temp
+          mv temp CHANGELOG.md
 
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
