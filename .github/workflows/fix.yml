@@ -1,14 +1,13 @@
 name: Fix
 
 on: [workflow_dispatch]
+  inputs:
+    release_number:
+      description: "Release which is being fixed"
+      required: true
 
 jobs:
   fix:
-    inputs:
-      release_number:
-        description: "Release which is being fixed"
-        required: true
-
     runs-on: ubuntu-latest
     env:
       CR_REGISTRY: crp6flpsq42sl65e0kb8
