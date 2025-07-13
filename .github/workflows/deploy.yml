@@ -33,18 +33,10 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             IMAGE="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest"
-
-
             echo "${{ secrets.YA_OAUTH }}" | sudo docker login --username oauth --password-stdin cr.yandex
-
-
             sudo docker pull "$IMAGE"
-
-
             sudo docker stop app_container || true
             sudo docker rm app_container   || true
-
-
             sudo docker run -d --name app_container "$IMAGE"
 
       - name: Find release issue by title
@@ -73,9 +65,11 @@ jobs:
           script: |
             const issueNumber = Number(core.getInput('issue_number'));
             const today = new Date().toISOString().slice(0,10);
+
+            const actor = context.actor;
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issueNumber,
-              body: `Deploy @${github.context.actor} от ${today}.\nОбраз: \`${process.env.IMAGE}\``
+              body: `Deploy @${actor} от ${today}.\nОбраз: \`${process.env.IMAGE}\``
             });
