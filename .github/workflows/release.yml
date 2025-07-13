@@ -25,7 +25,7 @@ jobs:
         run: npm run lint
 
       - name: Create branch
-        uses: peterjgrainger/action-create-branch@main
+        uses: peterjgrainger/action-create-branch@v3.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -33,7 +33,7 @@ jobs:
 
       - name: Login to Yandex Cloud Container Registry
         id: login-cr
-        uses: yc-actions/yc-cr-login@master
+        uses: yc-actions/yc-cr-login@v3
         with:
           yc-sa-id: ${{ secrets.YC_SA_ID }}
 
