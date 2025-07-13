@@ -11,15 +11,13 @@ jobs:
   deploy:
     name: Push & Launch
     runs-on: ubuntu-latest
-    env:
-      IMAGE_REF: cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.release_tag }}_latest
-
     steps:
       - name: Login to Yandex Container Registry
         run: echo "${{ secrets.YA_OAUTH }}" | docker login --username oauth --password-stdin cr.yandex
 
       - name: Verify image exists
         run: |
+          IMAGE_REF="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.release_tag }}_latest"
           if ! docker manifest inspect "$IMAGE_REF" >/dev/null 2>&1; then
             echo "❌ $IMAGE_REF not found" >&2
             exit 1
@@ -32,23 +30,26 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            IMAGE_REF="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.release_tag }}_latest"
+
             echo "${{ secrets.YA_OAUTH }}" | sudo docker login --username oauth --password-stdin cr.yandex
-            sudo docker pull $IMAGE_REF
+            sudo docker pull "$IMAGE_REF"
             sudo docker stop app_container || true
             sudo docker rm app_container || true
-            sudo docker run -d --name app_container $IMAGE_REF
+            sudo docker run -d --name app_container "$IMAGE_REF"
 
       - name: Post back to GitHub
         uses: actions/github-script@v7
-        env:
-          TAG: ${{ github.event.inputs.release_tag }}
-          IMAGE: ${{ env.IMAGE_REF }}
         with:
           script: |
             const today = new Date().toISOString().slice(0,10);
+            const tag = "${{ github.event.inputs.release_tag }}";
+            const image = "cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:" + tag + "_latest";
+            const issueNumber = Number(tag.match(/(\d+)$/)?.[1] || 0);
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: Number(process.env.TAG.match(/(\d+)$/)[1] || 0),
-              body: `✅ Deployed by @${github.actor} on ${today}\nImage: \`${process.env.IMAGE}\``
+              issue_number: issueNumber,
+              body: `✅ Deployed by @${github.actor} on ${today}\nImage: \`${image}\``
             });
