@@ -90,6 +90,6 @@ jobs:
           branch: 'refs/heads/releases/${{ github.run_number }}'
 
       - name: Create tag
-        uses: rickstaa/action-create-tag@v1
-        with:
-          tag: ${{ github.run_number }}
+        run: |
+          git tag ${{ github.run_number }}
+          git push origin ${{ github.run_number }}
