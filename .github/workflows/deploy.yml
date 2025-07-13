@@ -36,7 +36,7 @@ jobs:
             sudo docker pull "$IMAGE_REF"
             sudo docker stop app_container || true
             sudo docker rm app_container || true
-            sudo docker run -d -p 3000:3000 --name app_container "$IMAGE_REF"
+            sudo docker run -d -p 3000:3000 -e HOST=0.0.0.0 --name app_container "$IMAGE_REF"
 
       - name: Post back to GitHub
         uses: actions/github-script@v7
