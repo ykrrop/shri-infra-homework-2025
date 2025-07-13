@@ -32,16 +32,20 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
+            IMAGE="cr.yandex/${{ secrets.YC_REGISTRY_ID }}/app:${{ github.event.inputs.version }}_latest"
+
+
             echo "${{ secrets.YA_OAUTH }}" | sudo docker login --username oauth --password-stdin cr.yandex
 
-            sudo docker pull $IMAGE
+
+            sudo docker pull "$IMAGE"
 
 
             sudo docker stop app_container || true
             sudo docker rm app_container   || true
 
-            н
-            sudo docker run -d --name app_container $IMAGE
+
+            sudo docker run -d --name app_container "$IMAGE"
 
       - name: Find release issue by title
         id: locate_release_issue
