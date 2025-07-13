@@ -6,8 +6,12 @@ jobs:
   release:
     runs-on: ubuntu-latest
     env:
-      CR_REGISTRY: crp6flpsq42sl65e0kb8
-      CR_REPOSITORY: app
+    env:
+      REGISTRY: crp6flpsq42sl65e0kb8
+      REPOSITORY: cr.yandex/${{ env.REGISTRY }}/app
+      IMAGE_TAG1: ${{ github.run_number }}
+      IMAGE_TAG2: ${{ github.run_number }}_latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -49,13 +53,9 @@ jobs:
 
 
       - name: Build, tag, and push image to Yandex Cloud Container Registry
-        env:
-          CR_REGISTRY: crp6flpsq42sl65e0kb8
-          CR_REPOSITORY: app
-          IMAGE_TAG: ${{ github.run_number }}
         run: |
-          docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:${IMAGE_TAG}_latest .
-          docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY --all-tags
+          docker build -t ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG1 }} -t ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG2 }} .
+          docker push ${{ env.REPOSITORY }} --all-tags
 
       - name: Create issue
         uses: JasonEtco/create-an-issue@v2
@@ -63,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_NUMBER: ${{ github.run_number }}
           AUTHOR: ${{ github.actor }}
-          DOCKER_IMAGE: cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:${{ github.run_number }}
+          DOCKER_IMAGE: ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG1 }}
 
 
       - name: Update changelog
@@ -91,5 +91,5 @@ jobs:
 
       - name: Create tag
         run: |
-          git tag ${{ github.run_number }}
-          git push origin ${{ github.run_number }}
+          git tag ${{ env.IMAGE_TAG1 }}
+          git push origin ${{ env.IMAGE_TAG1 }}

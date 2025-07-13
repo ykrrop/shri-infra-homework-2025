@@ -11,11 +11,10 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     env:
-      CR_REGISTRY: crp6flpsq42sl65e0kb8
-      CR_REPOSITORY: app
+      REGISTRY: crp6flpsq42sl65e0kb8
+      REPOSITORY: cr.yandex/${{ env.REGISTRY }}/app
       IMAGE_TAG1: ${{ inputs.release_number }}_fix${{ github.run_number }}
       IMAGE_TAG2: ${{ inputs.release_number }}_latest
-      LINK_TO_IMAGE: cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG1
 
     steps:
       - name: Checkout code
@@ -61,8 +60,8 @@ jobs:
 
       - name: Build, tag, and push image to Yandex Cloud Container Registry
         run: |
-          docker build -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG1 -t cr.yandex/$CR_REGISTRY/$CR_REPOSITORY:$IMAGE_TAG2 .
-          docker push cr.yandex/$CR_REGISTRY/$CR_REPOSITORY --all-tags
+          docker build -t ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG1 }} -t ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG2 }} .
+          docker push ${{ env.REPOSITORY }} --all-tags
 
 
       - name: Find issue
@@ -82,11 +81,11 @@ jobs:
           body: |
             Date: ${{ steps.date.outputs.date }}
             Author: ${{ github.actor }}
-            Docker image: ${{ env.LINK_TO_IMAGE }}
+            Docker image: ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG1 }}
             Commits:
             ${{ env.COMMITS }}
 
       - name: Create tag
         run: |
-          git tag ${{ inputs.release_number }}_fix${{ github.run_number }}
-          git push origin ${{ inputs.release_number }}_fix${{ github.run_number }}
+          git tag ${{ env.IMAGE_TAG1 }}
+          git push origin ${{ env.IMAGE_TAG1 }}
