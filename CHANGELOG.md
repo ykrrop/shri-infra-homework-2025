@@ -1,3 +1,5 @@
+## 30
+- fd85a49 precompile server with tsc
 ## 29
 - a0fd882 add header for comments
 ## 28
