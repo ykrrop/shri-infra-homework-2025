@@ -78,6 +78,7 @@ jobs:
         with:
           issue-number: ${{ steps.find-issue.outputs.number }}
           body: |
+            **Fix ${{ github.run_number }}**
             Date: ${{ steps.date.outputs.date }}
             Author: ${{ github.actor }}
             Docker image: ${{ env.REPOSITORY }}:${{ env.IMAGE_TAG1 }}
