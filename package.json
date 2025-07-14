@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "nodemon ./src/server/index.ts",
-    "start": "node --max-old-space-size=1536 ./dist/server/index.js",
+    "start": "node --max-old-space-size=1536 ./dist/server/server/index.js",
     "build": "webpack --mode=production --node-env=production",
     "build:server": "tsc --project tsconfig.server.json",
     "build:all": "npm run build && npm run build:server",
